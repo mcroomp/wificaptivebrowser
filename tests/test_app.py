@@ -351,6 +351,63 @@ class TraceTests(unittest.TestCase):
         self.assertIsNotNone(scripts[1].inline_sha256)
         self.assertEqual(scripts[2].inline_preview, "unfinished()")
 
+    @unittest.skipUnless(sys.platform == "win32", "requires Windows")
+    def test_windows_launcher_prepares_dependencies_and_only_needed_browser(self):
+        cases = (
+            ([], True),
+            (["--browser", "--platform", "iphone"], True),
+            (["--browser", "--platform=iphone"], True),
+            (["--browser", "--platform", "windows"], False),
+            (["--platform", "iphone"], False),
+            (["--browser", "--platform", "iphone", "--help"], False),
+        )
+        for args, webkit in cases:
+            with self.subTest(args=args):
+                completed, commands = self.run_launcher_stub(args)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                self.assertEqual(commands[0], "sync --frozen")
+                self.assertEqual(
+                    "run --offline --frozen playwright install webkit" in commands, webkit,
+                )
+                self.assertIn("python -m captive_tracer", commands[-1])
+
+    @unittest.skipUnless(sys.platform == "win32", "requires Windows")
+    def test_windows_launcher_stops_on_dependency_setup_failure(self):
+        for failed_step in ("sync", "webkit"):
+            with self.subTest(failed_step=failed_step):
+                completed, commands = self.run_launcher_stub(
+                    ["--browser", "--platform", "iphone"], failed_step,
+                )
+                self.assertEqual(completed.returncode, 1)
+                self.assertIn("Dependency setup failed", completed.stderr)
+                self.assertFalse(any("python -m captive_tracer" in item for item in commands))
+
+    def run_launcher_stub(self, args, failed_step=""):
+        launcher = Path(__file__).resolve().parents[1] / "captive-tracer.cmd"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copy2(launcher, root / launcher.name)
+            log = root / "commands.txt"
+            (root / "uv.cmd").write_text(
+                '@echo off\n'
+                '>>"%UV_TEST_LOG%" echo %*\n'
+                'if "%~1"=="sync" if "%UV_TEST_FAIL%"=="sync" exit /b 9\n'
+                'if "%~4"=="playwright" if "%UV_TEST_FAIL%"=="webkit" exit /b 9\n'
+                'exit /b 0\n',
+            )
+            environment = {
+                **os.environ,
+                "PATH": str(root) + os.pathsep + os.environ["PATH"],
+                "UV_TEST_LOG": str(log),
+                "UV_TEST_FAIL": failed_step,
+            }
+            completed = subprocess.run(
+                [os.environ["COMSPEC"], "/d", "/c", str(root / launcher.name), *args],
+                cwd=root, env=environment, input="\n", capture_output=True,
+                text=True, timeout=30,
+            )
+            return completed, log.read_text().splitlines()
+
     def test_external_scripts_are_saved_with_urls_metadata_and_session_cookies(self):
         with tempfile.TemporaryDirectory() as temporary, contextlib.redirect_stdout(
             io.StringIO()

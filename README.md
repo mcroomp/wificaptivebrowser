@@ -43,13 +43,20 @@ MAC-inspection warning.
 
 ### Windows (Command Prompt or double-click)
 
-Install `uv` if needed, then prepare the Windows environment while online:
+Run the launcher while online for first-time setup:
 
 ```bat
 cd /d path\to\wificaptivebrowser
-uv sync --frozen
 captive-tracer.cmd --help
 ```
+
+The launcher installs `uv` for the current user if missing, using its official
+PowerShell installer, then runs `uv sync --frozen` to prepare Python and the
+project dependencies (including Playwright). `uv` can download a compatible
+Python if needed. No separate Python or `uv` installation is required.
+For iPhone browser mode, it also installs Playwright's WebKit engine if missing.
+Edge mode uses your existing Microsoft Edge installation; install Edge separately.
+Setup failures stop the launcher with a nonzero exit code.
 
 Dependencies are resolved through the Microsoft Python proxy feed configured in
 `pyproject.toml`.
@@ -59,7 +66,9 @@ Virtual environments cannot be copied from Linux to Windows. If you brought
 
 Double-click `captive-tracer.cmd`, or run it without arguments, to open an
 interactive iPhone-like browser with monitoring off and keep the terminal open
-afterward. The launcher works from any working directory and uses `uv` offline.
+afterward. The launcher works from any working directory. Setup can download
+missing dependencies; once prepared, unchanged dependencies and WebKit are reused
+without downloading, and the application itself runs with `uv` offline.
 When arguments are supplied, they are forwarded as before, with Windows as the
 fallback profile; include `--browser` for interactive mode or omit it for HTTP
 tracing:
@@ -69,8 +78,8 @@ captive-tracer.cmd --platform iphone --output "captures\iphone-01"
 captive-tracer.cmd --output "captures\windows-01" --compare-with "captures\iphone-01"
 ```
 
-The launcher preserves the Python exit code. Run `uv sync --frozen` again while
-online if dependencies are missing; it does not download packages during collection.
+The launcher preserves the Python exit code. Complete a first launch in the
+desired mode while online before connecting to a captive network.
 Windows HTTP tracing works without administrator access; MAC inspection still
 reports an unsupported-platform warning.
 
@@ -108,7 +117,8 @@ Click and type normally: JavaScript, cookies, CSRF fields, and form submissions
 are handled by the browser. **Keep the terminal open. When finished, press Enter
 in the terminal** to close the browser and finalize the session. An initial
 navigation error is printed but leaves the browser open so you can retry manually.
-Browser startup never downloads missing engines automatically.
+Direct CLI browser startup never downloads missing engines automatically; the
+Windows launcher prepares WebKit before starting the application.
 
 **Monitoring is off by default:** the utility writes no capture files in browser
 mode unless you add `--monitor`:
