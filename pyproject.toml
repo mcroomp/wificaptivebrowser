@@ -1,0 +1,28 @@
+[project]
+name = "captive-tracer"
+version = "0.1.0"
+description = "Trace captive portal redirects and compare user-agent behavior."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1,<0.29",
+    "playwright>=1.65.1",
+]
+
+[[tool.uv.index]]
+name = "microsoft-python"
+url = "https://packagefeedproxy.microsoft.io/pypi/simple/"
+default = true
+
+[project.urls]
+Repository = "https://github.com/mcroomp/wificaptivebrowser"
+Issues = "https://github.com/mcroomp/wificaptivebrowser/issues"
+
+[project.scripts]
+captive-tracer = "captive_tracer.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
