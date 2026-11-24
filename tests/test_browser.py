@@ -62,7 +62,7 @@ class BrowserTests(unittest.TestCase):
             options = self.browser.new_context.call_args.kwargs
             self.assertEqual(options["user_agent"], "iPhone preset")
             self.assertTrue(options["is_mobile"])
-            self.assertEqual(options["record_har_path"], output / "network.har")
+            self.assertEqual(options["record_har_path"], (output / "network.har").resolve())
             self.assertEqual(options["record_har_content"], "embed")
         self.playwright.webkit.launch.assert_called_once_with(headless=False)
 
